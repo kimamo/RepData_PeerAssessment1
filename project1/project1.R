@@ -6,19 +6,33 @@ library(reshape2)
 
 ## Code for reading in the dataset and/or processing the data
 ## the zip file
-activityZipFile <- "repdata-data-activity.zip"
+activityZipFile <- "activity.zip"
+#get current working dir
+projDir <- getwd()
+# traverse back for zip dir
+setwd("..")
+#set to zipped dir
+zipFileDir  <- getwd()
 
-zipFilePath <- paste(getwd(),activityZipFile,sep = "/")
+#reset to back to current project folder
+setwd(projDir)
 
-if (!file.exists("./activity.csv")) {
+zipFilePath <- paste(zipFileDir,activityZipFile,sep = "/")
+
+activityCSVFullPath <- paste(projDir,"activity.csv", sep = "/")
+
+zipFilePath
+projDir
+#check if unzipped file exists
+if (!file.exists(activityCSVFullPath)) {
   ##Unzip downloaded file
-  unzip(zipfile = zipFilePath,exdir = "./")
+  unzip(zipfile = zipFilePath,exdir = projDir)
 }
 
 ##Read Activity Files
 dataActivity <-
   read.csv(
-    file.path("activity.csv"),header = TRUE, sep = ',', stringsAsFactors = F, na.strings =
+    file.path(activityCSVFullPath),header = TRUE, sep = ',', stringsAsFactors = F, na.strings =
       c("NA","NaN", " ")
     , colClasses = c("numeric", "character","integer")
   )
@@ -45,12 +59,17 @@ colnames(aggrDaySteps) <- c("Day","Steps")
 
 ## Histogram of the total number of steps taken each day
 #build histogram of the aggregated Day steps
-png("plot1.png")
+
+png(filename = "steps.png")
 
 hist(
   aggrDaySteps$Steps, breaks = 5 ,col = "green", ylab = "Frequency" , xlab = "Steps" , main = "Total Steps per Weekday"
 )
+
 dev.off()
+#------------------------------------------------------------------------------------------------------------------------
+
+
 ## Mean and median number of steps taken each day.
 sumByDate <-
   ddply(tidyData, .(interval), summarise, Avg = mean(steps))
