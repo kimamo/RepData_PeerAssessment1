@@ -3,6 +3,7 @@ library(ggplot2)
 library(plyr)
 library(knitr)
 library(reshape2)
+library(lattice)
 
 ## Code for reading in the dataset and/or processing the data
 ## the zip file
@@ -89,6 +90,7 @@ ggplot(sumByDate, aes(x = interval, y = Avg), xlab="internal", ylab="Average Ste
 
 dev.off()
 
+#----------------------------------------------------------------------------------------------
 ## The 5-minute interval that, on average, contains the maximum number of steps
 ##get maximum
 maxSteps <- max(sumByDate$Avg)
@@ -104,14 +106,68 @@ paste("No of Missing values = ", totalNA)
 missingRow <- nrow(dataActivity[is.na(dataActivity$steps),])
 paste("No. of rows with NA in steps field:- ", missingRow)
 
+#------------------------------------------------------------------------------
 ## filling the missing data with day average of 5 min interval values
-weekdayAvg <- ddply(tidyData, .(interval,day), summarise, Avg = mean(steps))
+#weekdayAvg <- ddply(tidyData, .(interval,day), summarise, Avg = mean(steps))
+
+#data frame of all NA
 isNAdata <- dataActivity[is.na(dataActivity$steps),]
-mergeDat <- merge(isNAdata,weekdayAvg, by=c("interval", "day")) 
-colnames(mergeDat) <- c("steps", "date", "interval","day","DateTime")
+# get mean steps
+meanSteps <- rep(mean(dataActivity$steps, na.rm = TRUE), times = length(isNAdata))
 
+#find position of NA data to be swapped with mean steps
+posOfNA <- which(is.na(dataActivity$steps))
 
-mergeData <- rbind(tidyData,mergeDat)
+#replace NA's with MeanSteps
+dataActivity[posOfNA,"steps"] <- meanSteps
+head(dataActivity, tail(15))
 
+sumByDate <- aggregate(dataActivity$steps, by=list(dataActivity$date),FUN =sum)
 
-head(mergeData, tail(15))
+#Friendly name the columns
+names(sumByDate) <- c("date", "totals")
+
+#plot hist based on step totals each day
+png("histPlot-withMean")
+hist(sumByDate$totals, breaks=seq(from=0,to=25000,by=2500), col = "green", xlab = "Steps Totals", 
+     main=expression("Sum total number of steps by Day\n -  NA replaced by the Mean "), ylim=c(0,30))
+
+dev.off()
+#-----------------------------------------------------------------------------------------------------------
+
+meanSteps <- round(as.integer(mean(sumByDate$totals, na.rm = TRUE)))
+medianSteps <- as.integer(median(sumByDate$totals,na.rm = TRUE))
+
+paste("Mean steps per day: ", meanSteps)
+paste("Median steps per day: ", medianSteps)
+
+#------------------------------------------------------------------------
+#
+ 
+dataActivity1 <- dataActivity
+head(dataActivity1)
+weekends <- weekdays(as.Date(dataActivity1$date)) %in% c("Saturday","Sunday")
+head(weekends, tail(20))
+
+#make dataType weekday then logically replace swap it with weekend if meets the weekend logic
+dataActivity1$dataType <- "weekday"
+dataActivity1$dataType[weekend == TRUE] <-"weekend"
+
+#Create a new factor variable in the dataset with two levels 
+# – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+#factorize dataType
+dataActivity1$dataType <- as.factor(dataActivity1$dataType)
+ 
+dataAgg <- aggregate(steps ~ interval + dataType, dataActivity1, "Mean(Steps)" = mean)
+
+names(dataAgg)[3] <-"Mean(Steps)"
+head(dataAgg)
+# diagram  a time-series plot for weekend and weekdays
+png("wkend-wkdays-avg-intervals.png")
+xyplot(dataAgg$`Mean(Steps)`~ interval | dataType, dataAgg, type = "l", layout =c(1,2), 
+       main = expression("5-Min interval Time-series plot \n vs Average steps taken \n for all weekends and weekdays"),
+xlab="5 min interval", ylab="avarage steps")
+
+dev.off()
+
+#-----------------------------------------------------------------------------------------------
