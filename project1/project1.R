@@ -1,9 +1,12 @@
 ## load libraries
+## load libraries
 library(ggplot2)
 library(plyr)
 library(knitr)
 library(reshape2)
 library(lattice)
+
+
 
 ## Code for reading in the dataset and/or processing the data
 ## the zip file
@@ -22,8 +25,9 @@ zipFilePath <- paste(zipFileDir,activityZipFile,sep = "/")
 
 activityCSVFullPath <- paste(projDir,"activity.csv", sep = "/")
 
-zipFilePath
-projDir
+#zipFilePath
+#projDir
+
 #check if unzipped file exists
 if (!file.exists(activityCSVFullPath)) {
   ##Unzip downloaded file
@@ -41,22 +45,22 @@ dataActivity <-
 
 str(dataActivity)
 
-dataActivity$DateTime  <-
-  as.POSIXct(dataActivity$date, format = "%Y-%m-%d")
+dataActivity$DateTime  <- as.POSIXct(dataActivity$date, format = "%Y-%m-%d")
 dataActivity$day <- weekdays(as.Date(dataActivity$date))
+weekends <- weekdays(as.Date(dataActivity$date)) %in% c("Saturday","Sunday")
+head(weekends, tail(20))
 
-#cleanup NA
-tidyData <- dataActivity[!is.na(dataActivity$steps),]
+#make dataType weekday then logically replace swap it with weekend if meets the weekend logic
+dataActivity$dateType <- "weekday"
+dataActivity$dateType[weekends == TRUE] <-"weekend"
 
-head(tidyData)
+head(dataActivity)
 
 ## Compute steps per day
-aggrDaySteps <-
-  aggregate(tidyData$steps ~ tidyData$date, FUN = sum,)
+aggrDaySteps <-aggregate(dataActivity$steps ~ dataActivity$date, FUN = sum, na.rm=TRUE)
+colnames(aggrDaySteps) <- c("Date","Steps")
 head(aggrDaySteps)
-
-colnames(aggrDaySteps) <- c("Day","Steps")
-##head(aggrDaySteps)
+ 
 
 ## Histogram of the total number of steps taken each day
 #build histogram of the aggregated Day steps
@@ -64,53 +68,47 @@ colnames(aggrDaySteps) <- c("Day","Steps")
 png(filename = "steps.png")
 
 hist(
-  aggrDaySteps$Steps, breaks = 5 ,col = "green", ylab = "Frequency" , xlab = "Steps" , main = "Total Steps per Weekday"
+  aggrDaySteps$Steps, breaks = seq(from=0, to=25000, by=2500) ,col = "green", xlab = "No. of Steps", main = "Total Steps per a week day"
 )
+
 
 dev.off()
 #------------------------------------------------------------------------------------------------------------------------
 
 
 ## Mean and median number of steps taken each day.
-sumByDate <-
-  ddply(tidyData, .(interval), summarise, Avg = mean(steps))
-
-meanSteps <- round(as.integer(mean(sumByDate$sum, na.rm = TRUE)))
-medianSteps <- as.integer(median(sumByDate$Avg,na.rm = TRUE))
+meanSteps <- round(as.integer(mean(aggrDaySteps$Steps, na.rm = TRUE)))
+medianSteps <- as.integer(median(aggrDaySteps$Steps,na.rm = TRUE))
 
 paste("Mean steps per day: ", meanSteps)
 paste("Median steps per day: ", medianSteps)
 
+## Mean and median number of steps taken each day.
+meanAggr <-
+  tapply(dataActivity$steps, dataActivity$interval,  mean ,na.rm = TRUE)
+
 # ## Time series plot of the average number of steps taken
 
-png("plot-ts.png")
-ggplot(sumByDate, aes(x = interval, y = Avg), xlab="internal", ylab="Average Steps") +
-  geom_line() +  ggtitle("Avg steps per interval")  + xlab("interval")
-+ ylab("Average Steps")
+#png("plot-ts.png")
+plot(row.names(meanAggr), meanAggr,  type = "l",
+     xlab="Interval [5 - Min]", ylab="Average Steps across all days" ,main ="Avg steps taken" )
 
-dev.off()
-
-#----------------------------------------------------------------------------------------------
+#dev.off()
+#---------------------------------------------------------------------------------------------------------
 ## The 5-minute interval that, on average, contains the maximum number of steps
 ##get maximum
-maxSteps <- max(sumByDate$Avg)
+maxSteps <- which.max(meanAggr)
+## print interval with max
+paste("interval with max steps is :- ", names(maxSteps))
 
-## get interval with max
-inv <- sumByDate[sumByDate$Avg == maxSteps,1]
-paste("interval with max steps is :- ", inv)
-
-##Code to describe and show a strategy for imputing missing data
+#find the total NA
 totalNA <- sum(is.na(dataActivity$steps))
 paste("No of Missing values = ", totalNA)
 #rows with missing steps
 missingRow <- nrow(dataActivity[is.na(dataActivity$steps),])
-paste("No. of rows with NA in steps field:- ", missingRow)
 
-#------------------------------------------------------------------------------
 ## filling the missing data with day average of 5 min interval values
-#weekdayAvg <- ddply(tidyData, .(interval,day), summarise, Avg = mean(steps))
-
-#data frame of all NA
+#data  of all NA rows
 isNAdata <- dataActivity[is.na(dataActivity$steps),]
 # get mean steps
 meanSteps <- rep(mean(dataActivity$steps, na.rm = TRUE), times = length(isNAdata))
@@ -122,52 +120,54 @@ posOfNA <- which(is.na(dataActivity$steps))
 dataActivity[posOfNA,"steps"] <- meanSteps
 head(dataActivity, tail(15))
 
-sumByDate <- aggregate(dataActivity$steps, by=list(dataActivity$date),FUN =sum)
+
+aggrByDay <- aggregate(dataActivity$steps, by=list(dataActivity$date),FUN =sum)
 
 #Friendly name the columns
-names(sumByDate) <- c("date", "totals")
+names(aggrByDay) <- c("date", "totals")
 
 #plot hist based on step totals each day
-png("histPlot-withMean")
-hist(sumByDate$totals, breaks=seq(from=0,to=25000,by=2500), col = "green", xlab = "Steps Totals", 
+#png("histPlot-withMean")
+hist(aggrByDay$totals, breaks=seq(from=0,to=25000,by=2500), col = "green", xlab = "Steps Totals", 
      main=expression("Sum total number of steps by Day\n -  NA replaced by the Mean "), ylim=c(0,30))
 
-dev.off()
-#-----------------------------------------------------------------------------------------------------------
+#dev.off()
 
-meanSteps <- round(as.integer(mean(sumByDate$totals, na.rm = TRUE)))
-medianSteps <- as.integer(median(sumByDate$totals,na.rm = TRUE))
+#--------------------------------------------------------------------------------------------------------
+meanSteps1 <- round(as.integer(mean(aggrByDay$ totals, na.rm = TRUE)))
+medianSteps1 <- as.integer(median(aggrByDay$totals,na.rm = TRUE))
 
-paste("Mean steps per day: ", meanSteps)
-paste("Median steps per day: ", medianSteps)
+#Do these values differ from the estimates from the first part of the assignment
 
-#------------------------------------------------------------------------
-#
- 
-dataActivity1 <- dataActivity
-head(dataActivity1)
-weekends <- weekdays(as.Date(dataActivity1$date)) %in% c("Saturday","Sunday")
-head(weekends, tail(20))
+paste("Mean steps per day after NA swap: ", meanSteps1)
+paste("Median steps per day after NA swap: ", medianSteps1)
 
-#make dataType weekday then logically replace swap it with weekend if meets the weekend logic
-dataActivity1$dataType <- "weekday"
-dataActivity1$dataType[weekend == TRUE] <-"weekend"
+#----------------------------------------------------------------------------------------------------------
 
 #Create a new factor variable in the dataset with two levels 
 # – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
 #factorize dataType
-dataActivity1$dataType <- as.factor(dataActivity1$dataType)
- 
-dataAgg <- aggregate(steps ~ interval + dataType, dataActivity1, "Mean(Steps)" = mean)
+dataActivity$dateType <- as.factor(dataActivity$dateType)
+
+dataAgg <- aggregate(steps ~ interval + dateType, dataActivity, "Mean(Steps)" = mean, FUN = mean)
 
 names(dataAgg)[3] <-"Mean(Steps)"
 head(dataAgg)
 # diagram  a time-series plot for weekend and weekdays
 png("wkend-wkdays-avg-intervals.png")
-xyplot(dataAgg$`Mean(Steps)`~ interval | dataType, dataAgg, type = "l", layout =c(1,2), 
-       main = expression("5-Min interval Time-series plot \n vs Average steps taken \n for all weekends and weekdays"),
-xlab="5 min interval", ylab="avarage steps")
+xyplot(dataAgg$`Mean(Steps)`~ interval | dateType , dataAgg, type = "l", layout =c(1,2), 
+       main = "5-Min interval Time-series plot\n vs Average steps taken\n over weekends and weekdays",
+       xlab="5-Min Interval", ylab="Avarage Steps")
 
 dev.off()
+png("wkend-wkdays-avg-intervals1.png")
+ts <- ggplot(dataAgg, aes(x=interval, y=`Mean(Steps)`, color = dateType)) +
+  geom_line() + ggtitle("5-Min interval Time-series plot\n vs Average steps taken\n over weekends and weekdays")+
+  facet_wrap(~dateType, ncol = 1, nrow=2)
+print(ts)
+
+dev.off()
+
+#dev.off()
 
 #-----------------------------------------------------------------------------------------------
