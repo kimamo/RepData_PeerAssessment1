@@ -1,6 +1,36 @@
 # Reproducible Research: Peer Assessment 1
 Kimamö Wachira  
 `r format(Sys.time(), '%d %B, %Y')`  
+###Introduction
+
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a [Fitbit](http://www.fitbit.com/), [Nike Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or [Jawbone Up](https://jawbone.com/up) . These type of devices are part of the “quantified self” movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+The data for this assignment can be downloaded from the course web site:
+
+Dataset: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
+The variables included in this dataset are:
+
+steps: Number of steps taking in a 5-minute interval (missing values are coded as 𝙽𝙰)
+date: The date on which the measurement was taken in YYYY-MM-DD format
+interval: Identifier for the 5-minute interval in which measurement was taken
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+####Assignment 
+
+This assignment will be described in multiple parts. You will need to write a report that answers the questions detailed below. Ultimately, you will need to complete the entire assignment in a single R markdown document that can be processed by knitr and be transformed into an HTML file.
+
+Throughout your report make sure you always include the code that you used to generate the output you present. When writing code chunks in the R markdown document, always use 𝚎𝚌𝚑𝚘 = 𝚃𝚁𝚄𝙴 so that someone else will be able to read the code. This assignment will be evaluated via peer assessment so it is essential that your peer evaluators be able to review the code for your analysis.
+
+For the plotting aspects of this assignment, feel free to use any plotting system in R (i.e., base, lattice, ggplot2)
+
+Fork/clone the GitHub repository created for this assignment. You will submit this assignment by pushing your completed files into your forked repository on GitHub. The assignment submission will consist of the URL to your GitHub repository and the SHA-1 commit ID for your repository state.
+
+NOTE: The GitHub repository also contains the dataset for the assignment so you do not have to download the data separately.
+
+
+
 
 ```r
 ## load libraries
@@ -17,6 +47,8 @@ library(knitr)
 library(reshape2)
 library(lattice)
 ```
+# ```{r, code = readLines('project1.R')}
+# ```
 
 
 ## Loading and preprocessing the data
@@ -61,7 +93,7 @@ if (!file.exists(activityCSVFullPath)) {
 }
 ```
 
-########Read Activity File
+###Load the data (i.e. 𝚛𝚎𝚊𝚍.𝚌𝚜𝚟())
 
 ```r
 dataActivity <- read.csv(file.path(activityCSVFullPath),header = TRUE, 
@@ -77,7 +109,7 @@ str(dataActivity)
 ##  $ date    : chr  "2012-10-01" "2012-10-01" "2012-10-01" "2012-10-01" ...
 ##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
 ```
-
+###Process/transform the data (if necessary) into a format suitable for analysis
 <br>
 
 ```r
@@ -109,7 +141,7 @@ head(dataActivity)
 ## 5    NA 2012-10-01       20 2012-10-01 Monday  weekday
 ## 6    NA 2012-10-01       25 2012-10-01 Monday  weekday
 ```
-
+####Calculate the total number of steps taken per day
 
 ```r
 #Compute steps per day
@@ -167,8 +199,6 @@ paste("Median steps per day: ", medianSteps)
 ```
 ## [1] "Median steps per day:  10765"
 ```
-
-
 ## What is the average daily activity pattern?
 
 
@@ -214,7 +244,10 @@ paste("No of Missing values = ", totalNA)
 ```r
 #rows with missing steps
 missingRow <- nrow(dataActivity[is.na(dataActivity$steps),])
+```
+####Devise a strategy for filling in all of the missing values in the dataset
 
+```r
 ## filling the missing data with day average of 5 min interval values
 #data  of all NA rows
 isNAdata <- dataActivity[is.na(dataActivity$steps),]
@@ -260,7 +293,7 @@ hist(aggrByDay$totals, breaks=seq(from=0,to=25000,by=2500), col = "green", xlab 
      main=expression("Sum total number of steps by Day\n -  NA replaced by the Mean "), ylim=c(0,30))
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-14-1.png)
+![](PA1_template_files/figure-html/unnamed-chunk-15-1.png)
 
 ```r
 #dev.off()
@@ -318,7 +351,7 @@ xyplot(dataAgg$`Mean(Steps)`~ interval | dateType , dataAgg, type = "l", layout 
 xlab="5-Min Interval", ylab="Avarage Steps")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-15-1.png)
+![](PA1_template_files/figure-html/unnamed-chunk-16-1.png)
 
 ```r
 ts <- ggplot(dataAgg, aes(x=interval, y=`Mean(Steps)`, color = dateType)) +
@@ -327,7 +360,7 @@ ts <- ggplot(dataAgg, aes(x=interval, y=`Mean(Steps)`, color = dateType)) +
 print(ts)
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-15-2.png)
+![](PA1_template_files/figure-html/unnamed-chunk-16-2.png)
 
 ```r
 #dev.off()

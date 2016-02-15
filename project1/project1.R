@@ -89,11 +89,11 @@ meanAggr <-
 
 # ## Time series plot of the average number of steps taken
 
-#png("plot-ts.png")
+png("plot-ts.png")
 plot(row.names(meanAggr), meanAggr,  type = "l",
      xlab="Interval [5 - Min]", ylab="Average Steps across all days" ,main ="Avg steps taken" )
 
-#dev.off()
+dev.off()
 #---------------------------------------------------------------------------------------------------------
 ## The 5-minute interval that, on average, contains the maximum number of steps
 ##get maximum
@@ -127,11 +127,11 @@ aggrByDay <- aggregate(dataActivity$steps, by=list(dataActivity$date),FUN =sum)
 names(aggrByDay) <- c("date", "totals")
 
 #plot hist based on step totals each day
-#png("histPlot-withMean")
+png("histPlot-withMean")
 hist(aggrByDay$totals, breaks=seq(from=0,to=25000,by=2500), col = "green", xlab = "Steps Totals", 
      main=expression("Sum total number of steps by Day\n -  NA replaced by the Mean "), ylim=c(0,30))
 
-#dev.off()
+dev.off()
 
 #--------------------------------------------------------------------------------------------------------
 meanSteps1 <- round(as.integer(mean(aggrByDay$ totals, na.rm = TRUE)))
@@ -154,17 +154,22 @@ dataAgg <- aggregate(steps ~ interval + dateType, dataActivity, "Mean(Steps)" = 
 names(dataAgg)[3] <-"Mean(Steps)"
 head(dataAgg)
 # diagram  a time-series plot for weekend and weekdays
+
 png("wkend-wkdays-avg-intervals.png")
+
 xyplot(dataAgg$`Mean(Steps)`~ interval | dateType , dataAgg, type = "l", layout =c(1,2), 
        main = "5-Min interval Time-series plot\n vs Average steps taken\n over weekends and weekdays",
        xlab="5-Min Interval", ylab="Avarage Steps")
 
 dev.off()
+
 png("wkend-wkdays-avg-intervals1.png")
+
 ts <- ggplot(dataAgg, aes(x=interval, y=`Mean(Steps)`, color = dateType)) +
   geom_line() + ggtitle("5-Min interval Time-series plot\n vs Average steps taken\n over weekends and weekdays")+
   facet_wrap(~dateType, ncol = 1, nrow=2)
 print(ts)
+
 
 dev.off()
 
